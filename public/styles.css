@@ -1,0 +1,31 @@
+body {
+    background: black;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+canvas {
+    border: 2px solid white;
+    margin-bottom: 10px;
+}
+
+.buttons {
+    display: flex;
+    gap: 10px;
+}
+
+button {
+    padding: 10px 20px;
+    font-size: 18px;
+    background: white;
+    border: none;
+    cursor: pointer;
+}
+
+button:hover {
+    background: lightgray;
+}
