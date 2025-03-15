@@ -25,9 +25,10 @@ io.on("connection", (socket) => {
         return;
     }
 
-    // Paddle movement
+    // Paddle movement, now logging the client's local timestamp
     socket.on("paddleMove", (data) => {
         if (players[socket.id]) {
+            console.log(`Received paddleMove from player ${players[socket.id].number} with timestamp: ${data.timestamp}`);
             players[socket.id].y = data.y;
             io.emit("updatePaddles", players);
         }
@@ -88,7 +89,12 @@ setInterval(() => {
 }, 1000 / 60);
 
 function resetBall() {
-    ball = { x: 300, y: 200, vx: (Math.random() > 0.5 ? 4 : -4), vy: (Math.random() > 0.5 ? 3 : -3) };
+    ball = { 
+      x: 300, 
+      y: 200, 
+      vx: (Math.random() > 0.5 ? 4 : -4), 
+      vy: (Math.random() > 0.5 ? 3 : -3) 
+    };
 }
 
 server.listen(3000, () => console.log("Server running on http://localhost:3000"));
