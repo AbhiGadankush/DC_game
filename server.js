@@ -13,19 +13,24 @@ let scores = { p1: 0, p2: 0 };
 let ball = { x: 300, y: 200, vx: 0, vy: 0 }; // Ball starts still
 let gameStarted = false;
 
-// Handle player connections
 io.on("connection", (socket) => {
     console.log("Player connected:", socket.id);
 
     if (Object.keys(players).length < 2) {
         players[socket.id] = { y: 150, number: Object.keys(players).length + 1 };
         socket.emit("playerNumber", players[socket.id].number);
+        // When exactly two players have joined, notify all clients.
+        if (Object.keys(players).length === 2) {
+            io.emit("bothPlayersJoined");
+            // Send the server's current time for synchronization.
+            io.emit("syncClock", { serverTime: Date.now() });
+        }
     } else {
         socket.emit("gameFull");
         return;
     }
 
-    // Paddle movement, now logging the client's local timestamp
+    // Paddle movement (logging the client's local timestamp)
     socket.on("paddleMove", (data) => {
         if (players[socket.id]) {
             console.log(`Received paddleMove from player ${players[socket.id].number} with timestamp: ${data.timestamp}`);
@@ -34,25 +39,27 @@ io.on("connection", (socket) => {
         }
     });
 
-    // Start game when clicked
+    // Start game event: only start if both players are present.
     socket.on("startGame", () => {
-        if (!gameStarted) {
+        if (!gameStarted && Object.keys(players).length === 2) {
             gameStarted = true;
             resetBall();
         }
     });
 
-    // Reset game when clicked
+    // Reset game event: reset scores and game state.
     socket.on("resetGame", () => {
         scores = { p1: 0, p2: 0 };
         gameStarted = false;
-        ball = { x: 300, y: 200, vx: 0, vy: 0 }; // Stop ball again
+        ball = { x: 300, y: 200, vx: 0, vy: 0 };
         io.emit("updateGame", { paddles: players, ball, scores });
     });
 
-    // Player disconnects
+    // Handle disconnections by removing the player and notifying remaining clients.
     socket.on("disconnect", () => {
         delete players[socket.id];
+        gameStarted = false;
+        io.emit("waitingForPlayer");
         console.log("Player disconnected:", socket.id);
     });
 });
@@ -76,7 +83,7 @@ setInterval(() => {
         ball.vx *= -1;
     }
 
-    // Scoring
+    // Scoring: update score and reset ball when ball goes out of bounds.
     if (ball.x < 0) {
         scores.p2++;
         resetBall();
