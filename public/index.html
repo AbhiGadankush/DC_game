@@ -1,20 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Multiplayer Pong</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiplayer Pong</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+            background-color: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .button {
+            display: inline-block;
+            margin: 10px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        #roomCode {
+            margin-top: 20px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
-  <!-- Display synchronization information -->
-  <div id="syncInfo" style="color: white; margin-bottom: 10px;"></div>
-  <canvas id="gameCanvas" width="600" height="400"></canvas>
-  <div class="buttons">
-    <button id="startButton" disabled>Start Game</button>
-    <button id="resetButton">Reset Game</button>
-  </div>
-  <script src="/socket.io/socket.io.js"></script>
-  <script src="game.js"></script>
+    <div class="container">
+        <h1>Multiplayer Pong</h1>
+        <div id="buttonContainer">
+            <a href="#" class="button" id="createRoomBtn">Create Room</a>
+            <a href="#" class="button" id="joinRoomBtn">Join Room</a>
+        </div>
+        <div id="roomCode"></div>
+        <div id="roomInput" style="display: none;">
+            <input type="text" id="roomCodeInput" placeholder="Enter Room Code">
+            <button id="submitRoomCode">Join</button>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const createRoomBtn = document.getElementById('createRoomBtn');
+        const joinRoomBtn = document.getElementById('joinRoomBtn');
+        const roomCodeDisplay = document.getElementById('roomCode');
+        const roomInputContainer = document.getElementById('roomInput');
+        const roomCodeInput = document.getElementById('roomCodeInput');
+        const submitRoomCodeBtn = document.getElementById('submitRoomCode');
+
+        createRoomBtn.addEventListener('click', () => {
+            socket.emit('createRoom');
+        });
+
+        socket.on('roomCreated', (roomCode) => {
+            roomCodeDisplay.textContent = `Room Code: ${roomCode}`;
+            createRoomBtn.style.display = 'none';
+            joinRoomBtn.style.display = 'none';
+            setTimeout(() => {
+                window.location.href = `/game.html?roomCode=${roomCode}`;
+            }, 2000);
+        });
+
+        joinRoomBtn.addEventListener('click', () => {
+            roomCodeDisplay.textContent = '';
+            roomInputContainer.style.display = 'block';
+        });
+
+        submitRoomCodeBtn.addEventListener('click', () => {
+            const roomCode = roomCodeInput.value.trim();
+            if (roomCode) {
+                window.location.href = `/game.html?roomCode=${roomCode}`;
+            }
+        });
+    </script>
 </body>
 </html>
