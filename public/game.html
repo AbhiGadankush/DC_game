@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multiplayer Pong</title>
+  <style>
+    body {
+      background: black;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+    canvas {
+      border: 2px solid white;
+      margin-bottom: 10px;
+    }
+    .buttons {
+      display: flex;
+      gap: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 18px;
+      background: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background: lightgray;
+    }
+    #roomDisplay {
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="roomDisplay"></div>
+  <canvas id="gameCanvas" width="600" height="400"></canvas>
+  <div class="buttons">
+    <button id="startButton" disabled>Start Game</button>
+    <button id="resetButton" disabled>Reset Game</button>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+      const startButton = document.getElementById("startButton");
+      const resetButton = document.getElementById("resetButton");
+      const roomDisplay = document.getElementById("roomDisplay");
+
+      const socket = io();
+
+      let playerNumber;
+      let roomCode;
+      let paddles = {};
+      let ball = { x: 300, y: 200, vx: 0, vy: 0 };
+      let scores = { p1: 0, p2: 0 };
+      let gameStarted = false;
+
+      // Get room code from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      roomCode = urlParams.get('roomCode');
+
+      if (roomCode) {
+        // Join the room
+        socket.emit('joinRoom', roomCode);
+        roomDisplay.textContent = `Room Code: ${roomCode}`;
+      }
+
+      // Socket event listeners
+      socket.on("joinedRoom", (data) => {
+        playerNumber = data.playerNumber;
+        roomDisplay.textContent = `Room Code: ${roomCode}, Player: ${playerNumber}`;
+        
+        if (playerNumber === 2) {
+          startButton.disabled = false;
+        }
+      });
+
+      socket.on("roomReady", () => {
+        startButton.disabled = false;
+      });
+
+      socket.on("gameStarted", () => {
+        gameStarted = true;
+        startButton.disabled = true;
+        resetButton.disabled = false;
+      });
+
+      socket.on("gameReset", (data) => {
+        paddles = data.players;
+        scores = data.scores;
+        ball = data.ball;
+        gameStarted = false;
+        startButton.disabled = false;
+        resetButton.disabled = true;
+      });
+
+      socket.on("updateScores", (newScores) => {
+        scores = newScores;
+      });
+
+      socket.on("updateBall", (newBall) => {
+        ball = newBall;
+      });
+
+      socket.on("updatePaddles", (newPaddles) => {
+        paddles = newPaddles;
+      });
+
+      // Move paddle with mouse
+      canvas.addEventListener("mousemove", (event) => {
+        if (!roomCode) return;
+
+        let rect = canvas.getBoundingClientRect();
+        let y = event.clientY - rect.top;
+        let newY = Math.max(0, Math.min(y - 30, canvas.height - 60));
+
+        socket.emit("paddleMove", { roomCode, y: newY });
+      });
+
+      // Start game button
+      startButton.addEventListener("click", () => {
+        if (roomCode) {
+          socket.emit("startGame", roomCode);
+        }
+      });
+
+      // Reset game button
+      resetButton.addEventListener("click", () => {
+        if (roomCode) {
+          socket.emit("resetGame", roomCode);
+        }
+      });
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Draw paddles
+        ctx.fillStyle = "white";
+        Object.values(paddles).forEach((p, index) => {
+          const xPos = index === 0 ? 10 : 580;
+          ctx.fillRect(xPos, p.y, 10, 60);
+        });
+
+        // Draw ball
+        ctx.beginPath();
+        ctx.arc(ball.x, ball.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Draw score
+        ctx.font = "20px Arial";
+        ctx.fillText(`P1: ${scores.p1}`, 50, 30);
+        ctx.fillText(`P2: ${scores.p2}`, 500, 30);
+
+        requestAnimationFrame(draw);
+      }
+
+      draw();
+    });
+  </script>
+</body>
+</html>
