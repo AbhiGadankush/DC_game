@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pong - Random Matchmaking</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #000;
+      color: white;
+    }
+    .container {
+      text-align: center;
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 40px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    }
+    .button {
+      display: inline-block;
+      margin: 10px;
+      padding: 15px 30px;
+      background-color: white;
+      color: black;
+      text-decoration: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 18px;
+      border: none;
+    }
+    .button:hover {
+      background-color: lightgray;
+    }
+    .button:disabled {
+      background-color: #555;
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+    #statusMessage {
+      margin: 20px 0;
+      font-size: 20px;
+    }
+    .loader {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #3498db;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      animation: spin 2s linear infinite;
+      margin: 20px auto;
+      display: none;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Pong - Random Matchmaking</h1>
+    <div id="statusMessage">Click the button below to find a random opponent</div>
+    <div class="loader" id="loadingSpinner"></div>
+    <button class="button" id="findMatch">Find Match</button>
+    <button class="button" id="cancelMatch" style="display:none; background-color:#ff6b6b;">Cancel</button>
+    <a href="/" class="button" style="background-color:#555;">Back to Home</a>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const socket = io();
+      const findMatchBtn = document.getElementById('findMatch');
+      const cancelMatchBtn = document.getElementById('cancelMatch');
+      const statusMessage = document.getElementById('statusMessage');
+      const loadingSpinner = document.getElementById('loadingSpinner');
+      
+      // Flag to track if we're in matchmaking process
+      let isSearching = false;
+      
+      // Find match button
+      findMatchBtn.addEventListener('click', () => {
+        // Prevent multiple clicks
+        if (isSearching) return;
+        
+        isSearching = true;
+        socket.emit('findRandomMatch');
+        findMatchBtn.style.display = 'none';
+        findMatchBtn.disabled = true;
+        cancelMatchBtn.style.display = 'inline-block';
+        statusMessage.textContent = 'Searching for an opponent...';
+        loadingSpinner.style.display = 'block';
+      });
+      
+      // Cancel matchmaking
+      cancelMatchBtn.addEventListener('click', () => {
+        socket.emit('cancelMatchmaking');
+        findMatchBtn.style.display = 'inline-block';
+        findMatchBtn.disabled = false;
+        cancelMatchBtn.style.display = 'none';
+        statusMessage.textContent = 'Matchmaking cancelled. Try again?';
+        loadingSpinner.style.display = 'none';
+        isSearching = false;
+      });
+      
+      // Socket event listeners
+      socket.on('waitingForMatch', () => {
+        statusMessage.textContent = 'Waiting for an opponent to join...';
+      });
+      
+      socket.on('joinedRoom', (data) => {
+        statusMessage.textContent = `Joined room ${data.roomCode} as Player ${data.playerNumber}. Redirecting...`;
+        loadingSpinner.style.display = 'none';
+        
+        // Redirect to game page with room code - use a short delay to ensure message is shown
+        setTimeout(() => {
+          window.location.href = `/game.html?roomCode=${data.roomCode}`;
+        }, 1500);
+      });
+      
+      socket.on('matchFound', (roomCode) => {
+        statusMessage.textContent = `Match found! Room code: ${roomCode}`;
+        loadingSpinner.style.display = 'none';
+        // No redirection here - will be handled by joinedRoom event
+      });
+      
+      socket.on('matchmakingCancelled', () => {
+        findMatchBtn.style.display = 'inline-block';
+        findMatchBtn.disabled = false;
+        cancelMatchBtn.style.display = 'none';
+        statusMessage.textContent = 'Matchmaking cancelled. Try again?';
+        loadingSpinner.style.display = 'none';
+        isSearching = false;
+      });
+    });
+  </script>
+</body>
+</html>
