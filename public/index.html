@@ -12,46 +12,102 @@
             align-items: center;
             height: 100vh;
             margin: 0;
-            background-color: #f0f0f0;
+            background-color: black;
+            color: white;
         }
         .container {
             text-align: center;
-            background-color: white;
+            background-color: rgba(255, 255, 255, 0.1);
             padding: 40px;
             border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
         }
         .button {
             display: inline-block;
             margin: 10px;
-            padding: 10px 20px;
-            background-color: #4CAF50;
-            color: white;
+            padding: 15px 30px;
+            background-color: white;
+            color: black;
             text-decoration: none;
             border-radius: 5px;
             cursor: pointer;
+            font-size: 18px;
         }
         .button:hover {
-            background-color: #45a049;
+            background-color: lightgray;
+        }
+        .button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
         #roomCode {
             margin-top: 20px;
             font-size: 24px;
             font-weight: bold;
         }
+        .main-buttons {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #roomInput {
+            margin-top: 20px;
+        }
+        input[type="text"] {
+            padding: 12px;
+            font-size: 16px;
+            width: 200px;
+            margin-right: 10px;
+            border-radius: 5px;
+            border: none;
+        }
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            background: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: lightgray;
+        }
+        .feature-list {
+            text-align: left;
+            margin-top: 30px;
+            padding: 15px;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+        }
+        .feature-list h3 {
+            margin-top: 0;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Multiplayer Pong</h1>
-        <div id="buttonContainer">
-            <a href="#" class="button" id="createRoomBtn">Create Room</a>
-            <a href="#" class="button" id="joinRoomBtn">Join Room</a>
+        
+        <div class="main-buttons">
+            <a href="#" class="button" id="createRoomBtn">Create Private Room</a>
+            <a href="#" class="button" id="joinRoomBtn">Join Private Room</a>
+            <a href="/random" class="button" style="background-color: #4CAF50;">Quick Match (Random)</a>
         </div>
+        
         <div id="roomCode"></div>
         <div id="roomInput" style="display: none;">
             <input type="text" id="roomCodeInput" placeholder="Enter Room Code">
             <button id="submitRoomCode">Join</button>
+        </div>
+        
+        <div class="feature-list">
+            <h3>Game Features:</h3>
+            <ul>
+                <li>Play against friends or random opponents</li>
+                <li>First to 5 points wins the game</li>
+                <li>Pause/resume functionality</li>
+                <li>Session timeout after 2 minutes of inactivity</li>
+            </ul>
         </div>
     </div>
 
@@ -64,8 +120,19 @@
         const roomInputContainer = document.getElementById('roomInput');
         const roomCodeInput = document.getElementById('roomCodeInput');
         const submitRoomCodeBtn = document.getElementById('submitRoomCode');
+        
+        // Flag to prevent multiple clicks
+        let isProcessing = false;
 
-        createRoomBtn.addEventListener('click', () => {
+        createRoomBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            
+            // Prevent multiple clicks
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            createRoomBtn.style.opacity = "0.5";
+            createRoomBtn.style.cursor = "not-allowed";
             socket.emit('createRoom');
         });
 
@@ -78,7 +145,8 @@
             }, 2000);
         });
 
-        joinRoomBtn.addEventListener('click', () => {
+        joinRoomBtn.addEventListener('click', (e) => {
+            e.preventDefault();
             roomCodeDisplay.textContent = '';
             roomInputContainer.style.display = 'block';
         });
